@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 
+from app.core.config import settings
+
 app = FastAPI(
-    title="Samaritan API",
-    version="0.1.0",
-    description="AI-powered cybersecurity platform"
+    title=settings.PROJECT_NAME,
+    version="0.1.0"
 )
 
 
 @app.get("/")
 async def root():
     return {
-        "project": "Samaritan",
+        "project": settings.PROJECT_NAME,
         "status": "running"
     }
