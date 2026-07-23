@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+
+    container_name: samaritan-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: samaritan
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: samaritan
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
