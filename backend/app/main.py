@@ -1,10 +1,36 @@
+
+from app.db.base import Base
+from app.db.models import User
+
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from app.core.config import settings
+from app.db.session import engine
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+
+        print("Database connected successfully!")
+
+        Base.metadata.create_all(bind=engine)
+
+        print("Database tables created!")
+
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+
+    yield
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -12,5 +38,5 @@ app = FastAPI(
 async def root():
     return {
         "project": settings.PROJECT_NAME,
-        "status": "running"
+        "status": "running",
     }
