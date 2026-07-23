@@ -1,7 +1,4 @@
 
-from app.db.base import Base
-from app.db.models import User
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,13 +12,7 @@ async def lifespan(app: FastAPI):
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-
         print("Database connected successfully!")
-
-        Base.metadata.create_all(bind=engine)
-
-        print("Database tables created!")
-
     except Exception as e:
         print(f"Database connection failed: {e}")
 
