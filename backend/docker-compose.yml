@@ -1,14 +1,14 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:17
-
     container_name: samaritan-postgres
-
     restart: unless-stopped
 
     environment:
       POSTGRES_USER: samaritan
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: StrongPassword123!
       POSTGRES_DB: samaritan
 
     ports:
@@ -17,5 +17,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U samaritan" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: samaritan-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:
