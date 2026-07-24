@@ -68,3 +68,7 @@ faker==33.1.0                     # Realistic fake data generation
 # ---------------------------------------------------------------------------
 ruff==0.8.4                       # Linter + formatter
 mypy==1.13.0                      # Static type checker
+slowapi==0.1.9
+limits==3.13.0
+coredis==6.8.0
+asgiref==3.8.1

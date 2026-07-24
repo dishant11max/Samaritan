@@ -1,76 +1,94 @@
+"""
+Alembic environment configuration for Samaritan.
+
+Uses the synchronous engine to keep Alembic simple — async Alembic
+requires a separate runner and adds complexity with minimal benefit.
+The ``DATABASE_URL`` is pulled from ``app.core.config.settings`` so that
+no credentials are ever duplicated in ``alembic.ini``.
+"""
+
+from __future__ import annotations
+
+import sys
+import os
 from logging.config import fileConfig
+from pathlib import Path
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+# ---------------------------------------------------------------------------
+# Ensure the backend/ directory is on sys.path so ``app.*`` imports resolve
+# when Alembic is invoked from the project root.
+# ---------------------------------------------------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-from app.db.base import Base
-from app.db.models import User
+# Import settings — loads .env automatically.
+from app.core.config import settings
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Import Base and ALL models so autogenerate detects every table.
+from app.db.base import Base
+import app.db.models  # noqa: F401 — registers all models on Base.metadata
+
+# ---------------------------------------------------------------------------
+# Alembic Config object
+# ---------------------------------------------------------------------------
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Override sqlalchemy.url from application settings (never read from alembic.ini).
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+# Set up Python logging from the alembic.ini [loggers] section.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+
+# ---------------------------------------------------------------------------
+# Migration runners
+# ---------------------------------------------------------------------------
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """
+    Run migrations in 'offline' mode.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    Emits SQL to stdout without needing a live database connection.
+    Useful for generating migration scripts for review before applying.
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
-        target_metadata=Base.metadata,
+        target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """
+    Run migrations in 'online' mode using a live database connection.
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
+    Uses ``NullPool`` to avoid connection pooling during migrations —
+    each migration run opens and closes its own connection cleanly.
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
         )
-
         with context.begin_transaction():
             context.run_migrations()
 

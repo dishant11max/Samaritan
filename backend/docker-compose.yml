@@ -1,22 +1,16 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:17
     container_name: samaritan-postgres
     restart: unless-stopped
-
     environment:
       POSTGRES_USER: samaritan
       POSTGRES_PASSWORD: StrongPassword123!
       POSTGRES_DB: samaritan
-
     ports:
       - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U samaritan" ]
       interval: 10s
@@ -27,12 +21,40 @@ services:
     image: redis:7-alpine
     container_name: samaritan-redis
     restart: unless-stopped
-
     ports:
       - "6379:6379"
-
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: samaritan-api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    container_name: samaritan-worker
+    restart: unless-stopped
+    env_file: .env
+    command: celery -A app.core.celery_app worker -l INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
